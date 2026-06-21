@@ -36,7 +36,7 @@
     height: min(85vw, 800px);
     min-height: 500px;
     overflow: hidden;
-    background: #1f2126; /* Премиальный глубокий графит */
+    background: #1f2126; /* Премиальный графит */
     font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
     color: #ffffff;
     -webkit-font-smoothing: antialiased;
@@ -255,7 +255,7 @@
   const controls = [...document.querySelectorAll('[data-lens-mode]')];
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1f2126); // Тот самый графит
+  scene.background = new THREE.Color(0x1f2126); // Графит
 
   const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
   camera.position.set(0, 0, 6.0);
@@ -267,12 +267,12 @@
   renderer.toneMappingExposure = 1.35;
 
   // ==========================================
-  // НЕВИДИМАЯ СТУДИЯ
+  // НЕВИДИМАЯ СТУДИЯ СВЕТА И БЛИКОВ
   // ==========================================
   const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0x101114); // Чуть темнее графита для глубины
+  envScene.background = new THREE.Color(0x101114); 
   
-  // Основной блик на поверхности линзы
+  // Основной мягкий белый блик
   const stripLight = new THREE.Mesh(
     new THREE.PlaneGeometry(0.32, 8.0),
     new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })
@@ -281,26 +281,25 @@
   stripLight.lookAt(0, 0, 0);
   envScene.add(stripLight);
 
-  // Цветной торец блика (отвечает за цвет покрытия: AR или Blue Blocker)
+  // Цветной остаточный рефлекс (Края)
   const stripEdge = new THREE.Mesh(
     new THREE.PlaneGeometry(0.042, 7.75),
-    new THREE.MeshBasicMaterial({ color: 0x00ffa2, toneMapped: false }) // Старт с зеленого AR
+    new THREE.MeshBasicMaterial({ color: 0x00f070, toneMapped: false }) // Изумрудный AR старт
   );
   stripEdge.position.set(-2.805, 0.3, 2.2);
   stripEdge.lookAt(0, 0, 0);
   envScene.add(stripEdge);
 
-  // Контровой свет (Rim Light). Отрывает темный фотохром от темного фона
+  // Контровой свет (Rim Light) для отрыва темных линз от фона
   const rimLight = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.5, 8.0),
+    new THREE.PlaneGeometry(2.0, 8.0),
     new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })
   );
-  rimLight.position.set(4.0, 0.0, -3.0); // Сзади справа
+  rimLight.position.set(4.0, 0.0, -2.5);
   rimLight.lookAt(0, 0, 0);
   envScene.add(rimLight);
 
-  // Добавляем заполняющий свет, чтобы 75% фотохром блестел, а не был матовым
-  envScene.add(new THREE.AmbientLight(0x33353a));
+  envScene.add(new THREE.AmbientLight(0x40444d)); // Подсветка для темных фотохромов
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   let environmentTarget = null;
@@ -319,50 +318,49 @@
   refreshEnvironment();
 
   // ==========================================
-  // БАЗОВАЯ ФИЗИКА СТЕКЛА
+  // БАЗОВЫЙ МАТЕРИАЛ (КРИСТАЛЬНАЯ ПОВЕРХНОСТЬ)
+  // ВАЖНО: Поверхность всегда белая (#ffffff) для идеального глянца!
   // ==========================================
   const glassMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,
-    transmission: 1.0,
+    color: 0xffffff,       // Поверхность всегда бесцветная
+    transmission: 1.0,     // 100% пропускание
     transparent: true,
     opacity: 1.0,
     roughness: 0.0,
     metalness: 0.0,
-    ior: 1.6,
+    ior: 1.52,
     thickness: 0.6,
-    attenuationColor: new THREE.Color(0xffffff),
-    attenuationDistance: 5.0,
-    clearcoat: 1.0, // Увеличил до 1.0 для максимального глянца
+    attenuationColor: new THREE.Color(0xffffff), // Цвет внутри массы стекла
+    attenuationDistance: 5.0, // Насколько быстро свет поглощается
+    clearcoat: 1.0,        // Максимальный полированный блеск
     clearcoatRoughness: 0.0,
-    dispersion: 0.014,
-    envMapIntensity: 1.0
+    dispersion: 0.012,
+    envMapIntensity: 1.2
   });
 
   // ==========================================
-  // НАСТРОЙКИ ПОКРЫТИЙ И 75% ЗАТЕМНЕНИЯ
+  // НАСТРОЙКИ ПОКРЫТИЙ ПО ФОТО-РЕФЕРЕНСАМ
   // ==========================================
-  // Для 75% затемнения мы используем attenuationDistance = 0.42.
-  // Это заставляет стекло жадно поглощать проходящий свет, делая его темным.
   const coatingPresets = {
     clear: {
-      color: '#ffffff', attenuationColor: '#ffffff', attenuationDistance: 5.0,
-      envMapIntensity: 1.0, stripColor: '#ffffff', stripEdgeColor: '#00ffa2' // Изумрудный блик
+      attenuationColor: '#ffffff', attenuationDistance: 5.0, // Кристально чистая
+      envMapIntensity: 1.2, stripColor: '#ffffff', stripEdgeColor: '#00f070' // Зеленый AR
     },
     blue: {
-      color: '#fffdf5', attenuationColor: '#fff9e6', attenuationDistance: 4.0, // Теплый оттенок
-      envMapIntensity: 1.2, stripColor: '#ffffff', stripEdgeColor: '#2055ff' // Насыщенный синий блик
+      attenuationColor: '#fffae8', attenuationDistance: 4.0, // Легчайший теплый оттенок массы
+      envMapIntensity: 1.3, stripColor: '#ffffff', stripEdgeColor: '#3b00ff' // Сочный фиолетово-синий
     },
     'photo-clear': {
-      color: '#ffffff', attenuationColor: '#ffffff', attenuationDistance: 5.0,
-      envMapIntensity: 1.0, stripColor: '#ffffff', stripEdgeColor: '#00ffa2'
+      attenuationColor: '#ffffff', attenuationDistance: 5.0,
+      envMapIntensity: 1.2, stripColor: '#ffffff', stripEdgeColor: '#00f070'
     },
     'photo-gray': {
-      color: '#666666', attenuationColor: '#202226', attenuationDistance: 0.42, // 75% Серый
-      envMapIntensity: 2.2, stripColor: '#e0e0e0', stripEdgeColor: '#ffffff' // Яркий контраст глянца
+      attenuationColor: '#1a1c20', attenuationDistance: 0.35, // Глубокий серый (75%)
+      envMapIntensity: 2.5, stripColor: '#ffffff', stripEdgeColor: '#ffffff' // Белый глянец
     },
     'photo-brown': {
-      color: '#7a604c', attenuationColor: '#301c0b', attenuationDistance: 0.42, // 75% Коричневый
-      envMapIntensity: 2.2, stripColor: '#ffead6', stripEdgeColor: '#ffddaa' // Теплый глянец
+      attenuationColor: '#63320b', attenuationDistance: 0.38, // Янтарно-коричневый (как Ray-Ban B-15)
+      envMapIntensity: 2.5, stripColor: '#ffe5cc', stripEdgeColor: '#ffba75' // Теплый глянцевый блик
     }
   };
 
@@ -372,7 +370,6 @@
 
   function snapshotMaterial() {
     return {
-      color: glassMaterial.color.clone(),
       attenuationColor: glassMaterial.attenuationColor.clone(),
       attenuationDistance: glassMaterial.attenuationDistance,
       envMapIntensity: glassMaterial.envMapIntensity,
@@ -383,7 +380,6 @@
 
   function normalizePreset(preset) {
     return {
-      color: color(preset.color),
       attenuationColor: color(preset.attenuationColor),
       attenuationDistance: preset.attenuationDistance,
       envMapIntensity: preset.envMapIntensity,
@@ -409,7 +405,7 @@
     const eased = progress * progress * (3 - 2 * progress);
     const { from, to } = coatingTransition;
 
-    glassMaterial.color.copy(from.color).lerp(to.color, eased);
+    // ВАЖНО: Мы больше не меняем glassMaterial.color, только внутренний свет (attenuation)
     glassMaterial.attenuationColor.copy(from.attenuationColor).lerp(to.attenuationColor, eased);
     glassMaterial.attenuationDistance = THREE.MathUtils.lerp(from.attenuationDistance, to.attenuationDistance, eased);
     glassMaterial.envMapIntensity = THREE.MathUtils.lerp(from.envMapIntensity, to.envMapIntensity, eased);
