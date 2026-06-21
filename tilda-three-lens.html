@@ -39,7 +39,6 @@
 <script type="module">
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-  import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
   import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 
   const MODEL_URL = 'https://raw.githubusercontent.com/wb123321q-cpu/premium-lens-assets/main/3Dlens.glb';
@@ -59,9 +58,8 @@
   renderer.toneMappingExposure = 1.35;
   RectAreaLightUniformsLib.init();
 
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  pmrem.dispose();
+  // Без тёмной HDR-комнаты: линза преломляет белый фон, а не серый интерьер.
+  scene.environment = null;
 
   const target = new THREE.Vector3(0, 0, 0);
   camera.lookAt(target);
@@ -76,12 +74,13 @@
   scene.add(new THREE.HemisphereLight(0x8ca7ff, 0x05070a, 1.2));
 
   const glass = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff, roughness: 0.012, metalness: 0,
-    transmission: 1, thickness: 0.32, ior: 1.6,
+    color: 0xffffff, roughness: 0.006, metalness: 0,
+    transmission: 1, thickness: 0.12, ior: 1.6,
     clearcoat: 0.5, clearcoatRoughness: 0.01,
-    envMapIntensity: 2.5, transparent: true, opacity: 1,
+    envMapIntensity: 0.35,
     iridescence: 0.12, iridescenceIOR: 1.35,
-    iridescenceThicknessRange: [180, 420]
+    iridescenceThicknessRange: [180, 360],
+    attenuationColor: 0xffffff, attenuationDistance: 8
   });
   const pedestalMaterial = new THREE.MeshStandardMaterial({
     color: 0x050812, roughness: 0.48, metalness: 0.1
