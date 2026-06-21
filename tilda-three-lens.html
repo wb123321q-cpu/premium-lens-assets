@@ -36,7 +36,7 @@
     height: min(85vw, 800px);
     min-height: 500px;
     overflow: hidden;
-    background: #1f2126; /* Графит */
+    background: #191b21; /* Базовый графит */
     font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
     color: #ffffff;
     -webkit-font-smoothing: antialiased;
@@ -46,7 +46,6 @@
     display: block; width: 100%; height: 100%;
     touch-action: none; cursor: grab;
   }
-
   #lens-apple-canvas:active { cursor: grabbing; }
 
   .apple-hud { position: absolute; z-index: 10; pointer-events: none; }
@@ -72,7 +71,7 @@
 
   .apple-hint {
     position: absolute; z-index: 10; bottom: 108px; left: 50%;
-    padding: 8px 16px; color: rgba(255, 255, 255, 0.7);
+    padding: 8px 16px; color: rgba(255, 255, 255, 0.8);
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px;
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
@@ -156,7 +155,7 @@
   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
   const MODEL_URL = 'https://raw.githubusercontent.com/wb123321q-cpu/premium-lens-assets/main/3Dlens.glb';
-  const TRANSITION_MS = 620;
+  const TRANSITION_MS = 650;
   const container = document.getElementById('lens-apple-widget');
   const canvas = document.getElementById('lens-apple-canvas');
   const status = document.getElementById('lens-apple-status');
@@ -165,10 +164,10 @@
   const controls = [...document.querySelectorAll('[data-lens-mode]')];
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1f2126); // Тот самый графит
+  scene.background = null; // Убираем плоский фон, делаем объемный
 
   const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
-  camera.position.set(0, 0, 6.0);
+  camera.position.set(0, 0, 6.5);
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -177,39 +176,56 @@
   renderer.toneMappingExposure = 1.35;
 
   // ==========================================
-  // СТУДИЯ И БЛИКИ
+  // ОБЪЕМНЫЙ ФОН ДЛЯ КРИСТАЛЬНОГО СВЕЧЕНИЯ
+  // ==========================================
+  // Физическая стена сзади линзы
+  const bgMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(50, 50),
+    new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 1.0 })
+  );
+  bgMesh.position.z = -10;
+  scene.add(bgMesh);
+
+  // Мягкий прожектор, который дает линзе свечение изнутри
+  const backGlow = new THREE.PointLight(0xffffff, 80, 25);
+  backGlow.position.set(0, 0, -3);
+  scene.add(backGlow);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+
+  // ==========================================
+  // НЕВИДИМАЯ СТУДИЯ И ИЗОГНУТЫЕ БЛИКИ
   // ==========================================
   const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0x101114); 
+  envScene.background = new THREE.Color(0x050505); 
   
-  // Основной белый блик
-  const stripLight = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.32, 8.0),
-    new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })
+  // Создаем ИЗОГНУТЫЙ цилиндр для блика (огибает форму линзы)
+  const radius = 10;
+  
+  // Белая сердцевина блика
+  const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, toneMapped: false });
+  const coreMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius, radius, 12, 32, 1, true, Math.PI * 1.15, Math.PI * 0.03),
+    coreMat
   );
-  stripLight.position.set(-3.0, 0.3, 2.2);
-  stripLight.lookAt(0, 0, 0);
-  envScene.add(stripLight);
+  envScene.add(coreMesh);
 
-  // Цветной торец блика (Изумрудный, Синий и т.д.)
-  const stripEdge = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.05, 7.75),
-    new THREE.MeshBasicMaterial({ color: 0x00f070, toneMapped: false }) 
+  // Цветной остаточный рефлекс (шире, создает окантовку)
+  const edgeMat = new THREE.MeshBasicMaterial({ color: 0x00ff73, side: THREE.DoubleSide, toneMapped: false });
+  const edgeMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius + 0.2, radius + 0.2, 12, 32, 1, true, Math.PI * 1.14, Math.PI * 0.05),
+    edgeMat
   );
-  stripEdge.position.set(-2.8, 0.3, 2.2);
-  stripEdge.lookAt(0, 0, 0);
-  envScene.add(stripEdge);
+  envScene.add(edgeMesh);
 
-  // Контровой свет для отрыва фотохрома от фона
+  // Контровой свет (Rim Light) справа
   const rimLight = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.0, 8.0),
+    new THREE.PlaneGeometry(3.0, 15.0),
     new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })
   );
-  rimLight.position.set(4.0, 0.0, -2.5);
+  rimLight.position.set(6.0, 0.0, -3.0);
   rimLight.lookAt(0, 0, 0);
   envScene.add(rimLight);
-
-  envScene.add(new THREE.AmbientLight(0x40444d)); 
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   let environmentTarget = null;
@@ -224,52 +240,51 @@
     scene.environment = nextTarget.texture;
     previousTarget?.dispose();
   }
-
   refreshEnvironment();
 
   // ==========================================
-  // МАТЕРИАЛ: ИДЕАЛЬНАЯ ПОВЕРХНОСТЬ
+  // МАТЕРИАЛ: ИДЕАЛЬНАЯ ОПТИКА
   // ==========================================
   const glassMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,       // Строго белый для глянца
-    transmission: 1.0,     // 100% пропускание
+    color: 0xffffff,       
+    transmission: 1.0,     
     transparent: true,
     opacity: 1.0,
     roughness: 0.0,
     metalness: 0.0,
     ior: 1.52,
-    thickness: 0.6,
+    thickness: 0.8,        // Увеличил толщину для красивого искажения заднего фона
     attenuationColor: new THREE.Color(0xffffff), 
     attenuationDistance: 5.0, 
     clearcoat: 1.0,        
     clearcoatRoughness: 0.0,
-    dispersion: 0.012,
-    envMapIntensity: 1.5
+    dispersion: 0.015,
+    envMapIntensity: 1.2
   });
 
   // ==========================================
-  // НАСТРОЙКИ СВЕТА И ЦВЕТА ПО РЕФЕРЕНСАМ
+  // НАСТРОЙКИ ПОКРЫТИЙ 
   // ==========================================
   const coatingPresets = {
     clear: {
-      attenuationColor: '#ffffff', attenuationDistance: 5.0, // Абсолютно прозрачная
-      envMapIntensity: 1.5, stripColor: '#ffffff', stripEdgeColor: '#00f070' // Яркий Изумруд
+      attenuationColor: '#ffffff', attenuationDistance: 5.0, 
+      envMapIntensity: 1.2, edgeColor: '#00ff73' // Яркий изумруд
     },
     blue: {
-      attenuationColor: '#fff9e6', attenuationDistance: 4.0, // Теплый сдвиг блюблокера
-      envMapIntensity: 1.5, stripColor: '#ffffff', stripEdgeColor: '#3b00ff' // Сочный синий
+      attenuationColor: '#fff5de', attenuationDistance: 3.5, // Легкий теплый/шампань оттенок
+      envMapIntensity: 1.2, edgeColor: '#2b4cff' // Глубокий сине-фиолетовый
     },
     'photo-clear': {
       attenuationColor: '#ffffff', attenuationDistance: 5.0,
-      envMapIntensity: 1.5, stripColor: '#ffffff', stripEdgeColor: '#00f070'
+      envMapIntensity: 1.2, edgeColor: '#00ff73'
     },
     'photo-gray': {
-      attenuationColor: '#4a4d54', attenuationDistance: 1.2, // Увеличенная дистанция для эффекта стекла
-      envMapIntensity: 2.5, stripColor: '#ffffff', stripEdgeColor: '#ffffff'
+      attenuationColor: '#303338', attenuationDistance: 0.6, // Глубокий графит, но пропускает свет
+      envMapIntensity: 3.0, edgeColor: '#ffffff' // Мощный зеркальный блеск
     },
     'photo-brown': {
-      attenuationColor: '#8a5c32', attenuationDistance: 1.2, // Благородный янтарный (как Ray-Ban)
-      envMapIntensity: 2.5, stripColor: '#ffe5cc', stripEdgeColor: '#ffba75' 
+      attenuationColor: '#6e3911', attenuationDistance: 0.6, // Янтарно-коричневый
+      envMapIntensity: 3.0, edgeColor: '#ffcc99' 
     }
   };
 
@@ -280,8 +295,7 @@
       attenuationColor: glassMaterial.attenuationColor.clone(),
       attenuationDistance: glassMaterial.attenuationDistance,
       envMapIntensity: glassMaterial.envMapIntensity,
-      stripColor: stripLight.material.color.clone(),
-      stripEdgeColor: stripEdge.material.color.clone()
+      edgeColor: edgeMat.color.clone()
     };
   }
 
@@ -290,8 +304,7 @@
       attenuationColor: color(preset.attenuationColor),
       attenuationDistance: preset.attenuationDistance,
       envMapIntensity: preset.envMapIntensity,
-      stripColor: color(preset.stripColor),
-      stripEdgeColor: color(preset.stripEdgeColor)
+      edgeColor: color(preset.edgeColor)
     };
   }
 
@@ -311,8 +324,7 @@
     glassMaterial.attenuationColor.copy(from.attenuationColor).lerp(to.attenuationColor, eased);
     glassMaterial.attenuationDistance = THREE.MathUtils.lerp(from.attenuationDistance, to.attenuationDistance, eased);
     glassMaterial.envMapIntensity = THREE.MathUtils.lerp(from.envMapIntensity, to.envMapIntensity, eased);
-    stripLight.material.color.copy(from.stripColor).lerp(to.stripColor, eased);
-    stripEdge.material.color.copy(from.stripEdgeColor).lerp(to.stripEdgeColor, eased);
+    edgeMat.color.copy(from.edgeColor).lerp(to.edgeColor, eased);
     refreshEnvironment(now);
 
     if (progress === 1) coatingTransition = null;
