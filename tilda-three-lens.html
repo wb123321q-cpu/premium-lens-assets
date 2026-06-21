@@ -99,35 +99,34 @@
   loader.setCrossOrigin('anonymous');
   loader.load(MODEL_URL, (gltf) => {
     const model = gltf.scene;
-    const box = new THREE.Box3().setFromObject(model);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    const scale = 2.7 / Math.max(size.x, size.y, size.z);
-    model.scale.setScalar(scale);
-    model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
-
-    let lensMeshCount = 0;
+    const lensMeshes = [];
     model.traverse((object) => {
       if (!object.isMesh) return;
-      // Экспорт Blender обычно сохраняет LensMesh / Премиальная_Линза.
       const name = `${object.name} ${object.parent?.name || ''}`.toLowerCase();
-      const isLens = /lens|линз/.test(name);
+      if (/lens|линз/.test(name)) lensMeshes.push(object);
+    });
+
+    // В этом GLB подиум и линза — отдельные меши. Берём размер только линзы.
+    const visibleMeshes = lensMeshes.length
+      ? lensMeshes
+      : (() => { const all = []; model.traverse(o => { if (o.isMesh) all.push(o); }); return all; })();
+    const lensBox = new THREE.Box3();
+    visibleMeshes.forEach(mesh => lensBox.expandByObject(mesh));
+    const lensSize = lensBox.getSize(new THREE.Vector3());
+    const lensCenter = lensBox.getCenter(new THREE.Vector3());
+    const scale = 2.7 / Math.max(lensSize.x, lensSize.y, lensSize.z);
+    model.scale.setScalar(scale);
+    model.position.set(-lensCenter.x * scale, -lensCenter.y * scale, -lensCenter.z * scale);
+
+    model.traverse((object) => {
+      if (!object.isMesh) return;
+      const isLens = visibleMeshes.includes(object);
+      object.visible = isLens;
       if (isLens) {
         object.material = glass;
         object.castShadow = true;
-        lensMeshCount += 1;
-      } else {
-        // Убираем подиум и старый свет из GLB, чтобы не было серой «шайбы».
-        object.visible = false;
       }
     });
-
-    // Если имя меша не сохранилось, используем единственную геометрию как линзу.
-    if (!lensMeshCount) {
-      model.traverse((object) => {
-        if (object.isMesh) { object.visible = true; object.material = glass; lensMeshCount += 1; }
-      });
-    }
 
     spin.add(model);
     status.style.display = 'none';
