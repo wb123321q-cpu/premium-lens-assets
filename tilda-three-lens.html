@@ -1,39 +1,41 @@
-<section id="lens-champagne-widget" aria-label="Премиальная линза">
-  <canvas id="lens-champagne-canvas"></canvas>
+<section id="lens-apple-widget" aria-label="Интерактивная премиальная линза">
+  <canvas id="lens-apple-canvas"></canvas>
   
   <div class="apple-hud top-left">
     <div class="hud-title">MIR OPTIKI PRO</div>
-    <div class="hud-subtitle">Premium AR Coating</div>
+    <div class="hud-subtitle">Ultra-Clear Polymer</div>
   </div>
   <div class="apple-hud bottom-right">
-    <div class="hud-spec">0.00 D</div>
-    <div class="hud-spec-sub">HIGH-INDEX 1.60</div>
+    <div class="hud-spec">AR COATING</div>
+    <div class="hud-spec-sub">MULTI-LAYER PROTECTION</div>
   </div>
   <div class="apple-hint" id="drag-hint">Touch & Drag</div>
   
-  <div id="lens-champagne-status" role="status">Загрузка оптики…</div>
+  <div id="lens-apple-status" role="status">Загрузка оптики…</div>
 </section>
 
 <style>
+  /* Системные шрифты для эффекта нативного приложения */
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap');
 
-  #lens-champagne-widget {
+  #lens-apple-widget {
     position: relative;
     width: 100%;
     height: min(85vw, 800px);
     min-height: 500px;
     overflow: hidden;
-    background: #F9F6F0; /* Фирменный золотистый/шампань фон */
+    background: #050505; /* Глубокий черный фон Apple */
     font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
-    color: #1a1a1a;
+    color: #ffffff;
     -webkit-font-smoothing: antialiased;
   }
-  #lens-champagne-canvas { 
+  #lens-apple-canvas { 
     display: block; width: 100%; height: 100%; 
     touch-action: none; cursor: grab;
   }
-  #lens-champagne-canvas:active { cursor: grabbing; }
+  #lens-apple-canvas:active { cursor: grabbing; }
   
+  /* Эффект матового стекла (Glassmorphism) */
   .apple-hud {
     position: absolute; pointer-events: none; z-index: 10;
   }
@@ -42,41 +44,42 @@
   
   .hud-title {
     font-size: 15px; font-weight: 500; letter-spacing: 0.15em;
-    color: rgba(0, 0, 0, 0.9); margin-bottom: 4px;
+    color: rgba(255, 255, 255, 0.95); margin-bottom: 4px;
   }
   .hud-subtitle {
-    font-size: 12px; font-weight: 400; letter-spacing: 0.05em;
-    color: rgba(0, 0, 0, 0.5); text-transform: uppercase;
+    font-size: 12px; font-weight: 300; letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.5); text-transform: uppercase;
   }
   .hud-spec {
     font-size: 22px; font-weight: 300; letter-spacing: 0.02em;
-    color: rgba(0, 0, 0, 0.9); margin-bottom: 2px;
+    color: rgba(255, 255, 255, 0.95); margin-bottom: 2px;
   }
   .hud-spec-sub {
-    font-size: 11px; font-weight: 500; letter-spacing: 0.1em;
-    color: rgba(0, 0, 0, 0.4);
+    font-size: 11px; font-weight: 400; letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.4);
   }
 
   .apple-hint {
     position: absolute; bottom: 40px; left: 50%;
     transform: translateX(-50%); padding: 8px 16px;
-    background: rgba(0, 0, 0, 0.04);
+    background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(0, 0, 0, 0.08); border-radius: 30px;
-    font-size: 12px; font-weight: 500; letter-spacing: 0.05em;
-    color: rgba(0, 0, 0, 0.6); pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px;
+    font-size: 12px; font-weight: 400; letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.7); pointer-events: none;
     transition: opacity 0.5s ease; animation: pulse 3s infinite ease-in-out;
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 0.4; transform: translateX(-50%) scale(1); }
+    0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
     50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
   }
 
-  #lens-champagne-status {
+  #lens-apple-status {
     position: absolute; inset: 0; display: grid; place-items: center;
-    font-size: 13px; font-weight: 400; letter-spacing: 0.1em;
-    text-transform: uppercase; color: rgba(0, 0, 0, 0.4); pointer-events: none;
+    font-size: 13px; font-weight: 300; letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4); pointer-events: none;
   }
 
   @media (max-width: 640px) {
@@ -100,95 +103,71 @@
   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
   const MODEL_URL = 'https://raw.githubusercontent.com/wb123321q-cpu/premium-lens-assets/main/3Dlens.glb';
-  const container = document.getElementById('lens-champagne-widget');
-  const canvas = document.getElementById('lens-champagne-canvas');
-  const status = document.getElementById('lens-champagne-status');
+  const container = document.getElementById('lens-apple-widget');
+  const canvas = document.getElementById('lens-apple-canvas');
+  const status = document.getElementById('lens-apple-status');
   const dragHint = document.getElementById('drag-hint');
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xF9F6F0); // Теплый кремовый/золотистый фон
+  scene.background = new THREE.Color(0x050505); 
   
   const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
-  camera.position.set(0, 0, 6.5); 
+  camera.position.set(0, 0, 6.0); 
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0; 
-  renderer.shadowMap.enabled = true; // Включаем тени
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMappingExposure = 1.35; 
 
   // ==========================================
-  // СТУДИЯ ОТРАЖЕНИЙ: ТЕМНЫЕ КОНТУРЫ + ЯРКИЙ БЛИК
+  // НЕВИДИМАЯ СТУДИЯ ДЛЯ ИДЕАЛЬНЫХ БЛИКОВ
   // ==========================================
+  // Создаем окружение, которое стекло будет преломлять
   const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0xF9F6F0);
+  envScene.background = new THREE.Color(0x000000);
   const planeGeo = new THREE.PlaneGeometry(20, 20);
   
-  // Создаем черные панели по краям. Они дадут стеклу темный ободок.
-  const darkMat = new THREE.MeshBasicMaterial({color: 0x0a0a0a});
-  const leftDark = new THREE.Mesh(planeGeo, darkMat);
-  leftDark.position.set(-10, 0, 0); leftDark.lookAt(0,0,0); envScene.add(leftDark);
+  // Яркий белый контур
+  const topLight = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({color: 0xffffff}));
+  topLight.position.set(0, 10, 2); topLight.lookAt(0,0,0); envScene.add(topLight);
   
-  const rightDark = new THREE.Mesh(planeGeo, darkMat);
-  rightDark.position.set(10, 0, 0); rightDark.lookAt(0,0,0); envScene.add(rightDark);
-
-  // Яркий изумрудный антиблик (наложен поверх темного фона, чтобы сиять)
-  const arGreenLight = new THREE.Mesh(new THREE.PlaneGeometry(5, 20), new THREE.MeshBasicMaterial({color: 0x00ffa2}));
-  arGreenLight.position.set(-8, 5, 6); arGreenLight.lookAt(0,0,0); envScene.add(arGreenLight);
+  // Зеленый премиальный остаточный блик (AR-покрытие)
+  const arGreenLight = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({color: 0x00ffaa}));
+  arGreenLight.position.set(-10, 0, 5); arGreenLight.lookAt(0,0,0); envScene.add(arGreenLight);
 
   // Фиолетово-синий контрастный блик
-  const arPurpleLight = new THREE.Mesh(new THREE.PlaneGeometry(5, 20), new THREE.MeshBasicMaterial({color: 0x4400ff}));
-  arPurpleLight.position.set(8, -5, 6); arPurpleLight.lookAt(0,0,0); envScene.add(arPurpleLight);
+  const arPurpleLight = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({color: 0x5500ff}));
+  arPurpleLight.position.set(10, -2, 5); arPurpleLight.lookAt(0,0,0); envScene.add(arPurpleLight);
 
+  // Генерация HDRI-карты из невидимой студии
   const pmrem = new THREE.PMREMGenerator(renderer);
   pmrem.compileEquirectangularShader();
   scene.environment = pmrem.fromScene(envScene).texture;
 
-  // Базовый свет для сцены
-  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-  
-  // Направленный свет для создания мягкой тени под линзой
-  const shadowLight = new THREE.DirectionalLight(0xffffff, 1.2);
-  shadowLight.position.set(0, 5, 2);
-  shadowLight.castShadow = true;
-  shadowLight.shadow.mapSize.width = 1024;
-  shadowLight.shadow.mapSize.height = 1024;
-  shadowLight.shadow.camera.near = 0.5;
-  shadowLight.shadow.camera.far = 15;
-  shadowLight.shadow.bias = -0.001;
-  scene.add(shadowLight);
-
-  // Невидимый пол для приема тени
-  const floorMat = new THREE.ShadowMaterial({ opacity: 0.08 }); // Очень мягкая серая тень
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), floorMat);
-  floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -1.5;
-  floor.receiveShadow = true;
-  scene.add(floor);
-
   // ==========================================
-  // МАТЕРИАЛ: НЕВИДИМОЕ СТЕКЛО С ВИДИМЫМ БЛИКОМ
+  // МАТЕРИАЛ КРИСТАЛЬНО ЧИСТОГО СТЕКЛА 
   // ==========================================
   const glassMaterial = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
-    transmission: 1.0,     
-    transparent: true,
+    transmission: 1.0,     // 100% прозрачность
     opacity: 1.0,
-    roughness: 0.0,        
-    metalness: 0.1,       
-    ior: 1.52,             
-    thickness: 0.15,       // Умеренная толщина для аккуратного края
+    transparent: true,
+    roughness: 0.0,        // Идеальный глянец
+    metalness: 0.0,
+    ior: 1.6,              // Высокий индекс преломления (High-Index)
+    thickness: 0.6,        // Оптическая толщина
     attenuationColor: new THREE.Color(0xffffff), 
-    attenuationDistance: 10.0, 
+    attenuationDistance: 5.0, // Свет проходит без замутнения
     clearcoat: 1.0,        
     clearcoatRoughness: 0.0,
-    dispersion: 0.01,     
-    envMapIntensity: 2.0,  // Сильно тянет отражения из envScene
-    iridescence: 0.3,      // Приглушенная общая радуга, акцент на зеленых лампах
+    dispersion: 0.015,     // Хроматическая аберрация на краях
+    envMapIntensity: 2.5,  // Яркость впитываемого света
+    
+    // ЭФФЕКТ ПРЕМИАЛЬНОГО АНТИБЛИКОВОГО ПОКРЫТИЯ
+    iridescence: 1.0,      
     iridescenceIOR: 1.4,
-    iridescenceThicknessRange: [200, 400] 
+    iridescenceThicknessRange: [350, 450] 
   });
 
   const floatGroup = new THREE.Group(); 
@@ -218,19 +197,19 @@
     model.scale.setScalar(scale);
     model.position.set(-lensCenter.x * scale, -lensCenter.y * scale, -lensCenter.z * scale);
 
+    // Применяем премиальное стекло к твоей геометрии
     model.traverse((object) => {
       if (!object.isMesh) return;
       const isLens = visibleMeshes.includes(object);
       object.visible = isLens;
       if (isLens) {
         object.material = glassMaterial;
-        object.castShadow = true; // Линза отбрасывает тень
       }
     });
 
-    // ИЗНАЧАЛЬНО ВЕРТИКАЛЬНО
-    spinGroup.rotation.x = 0;
-    spinGroup.rotation.y = 0;
+    // Красивый стартовый ракурс
+    spinGroup.rotation.x = THREE.MathUtils.degToRad(15);
+    spinGroup.rotation.y = THREE.MathUtils.degToRad(25);
 
     spinGroup.add(model);
     status.style.display = 'none';
@@ -248,28 +227,23 @@
   new ResizeObserver(resize).observe(container);
   resize();
 
-  // --- ЛОГИКА ВРАЩЕНИЯ И ОСТАНОВКИ ПРИ НАВЕДЕНИИ ---
-  let isDragging = false, isHovered = false;
-  let lastPointerX = 0, lastPointerY = 0;
-  
-  let targetRotationX = 0;
-  let targetRotationY = 0;
-
-  container.addEventListener('pointerenter', () => { isHovered = true; });
-  container.addEventListener('pointerleave', () => { isHovered = false; isDragging = false; });
+  // --- ФИЗИКА УПРАВЛЕНИЯ И ЛЕВИТАЦИЯ ---
+  let isDragging = false, lastPointerX = 0, lastPointerY = 0;
+  let targetRotationX = THREE.MathUtils.degToRad(15);
+  let targetRotationY = THREE.MathUtils.degToRad(25);
 
   canvas.addEventListener('pointerdown', (event) => {
     isDragging = true; 
     lastPointerX = event.clientX; lastPointerY = event.clientY;
     canvas.setPointerCapture(event.pointerId);
-    dragHint.style.opacity = '0'; 
+    dragHint.style.opacity = '0'; // Скрываем подсказку
   });
   
   canvas.addEventListener('pointermove', (event) => {
     if (!isDragging) return;
     targetRotationY += (event.clientX - lastPointerX) * 0.006;
     targetRotationX += (event.clientY - lastPointerY) * 0.006; 
-    targetRotationX = Math.max(-Math.PI/4, Math.min(Math.PI/4, targetRotationX));
+    targetRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/3, targetRotationX));
     lastPointerX = event.clientX; lastPointerY = event.clientY;
   });
   
@@ -281,17 +255,16 @@
   function render() {
     const elapsedTime = clock.getElapsedTime();
 
-    // Крутим ВЛЕВО, если нет взаимодействия
-    if (!isHovered && !isDragging) {
-      targetRotationY -= 0.005; 
+    if (!isDragging) {
+      targetRotationY += 0.0025; // Ленивое авто-вращение
     }
     
-    // Плавная инерция
-    spinGroup.rotation.y += (targetRotationY - spinGroup.rotation.y) * 0.08;
-    spinGroup.rotation.x += (targetRotationX - spinGroup.rotation.x) * 0.08;
+    // Инерция
+    spinGroup.rotation.y += (targetRotationY - spinGroup.rotation.y) * 0.05;
+    spinGroup.rotation.x += (targetRotationX - spinGroup.rotation.x) * 0.05;
 
-    // Мягкое дыхание по вертикали
-    floatGroup.position.y = Math.sin(elapsedTime * 1.5) * 0.05;
+    // Плавная левитация (дыхание)
+    floatGroup.position.y = Math.sin(elapsedTime * 1.2) * 0.08;
 
     renderer.render(scene, camera);
     requestAnimationFrame(render);
