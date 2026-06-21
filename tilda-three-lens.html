@@ -1,443 +1,75 @@
 <section id="lens-apple-widget" aria-label="Интерактивная премиальная линза">
   <canvas id="lens-apple-canvas"></canvas>
-
-  <div class="apple-hud top-left">
-    <div class="hud-title">MIR OPTIKI PRO</div>
-    <div class="hud-subtitle">Ultra-Clear Polymer</div>
+  <div id="lens-apple-status" role="status">Инициализация оптики...</div>
+  
+  <div class="lens-controls">
+    <button class="lens-control is-active" data-coat="green">AR Green (Clear)</button>
+    <button class="lens-control" data-coat="blue">Blue Blocker</button>
   </div>
-  <div class="apple-hud bottom-right">
-    <div class="hud-spec">AR COATING</div>
-    <div class="hud-spec-sub">MULTI-LAYER PROTECTION</div>
-  </div>
-  <div class="apple-hint" id="drag-hint">Touch &amp; Drag</div>
-
-  <div class="lens-controls" aria-label="Выбор покрытия линзы">
-    <div class="lens-controls__primary" role="group" aria-label="Тип покрытия">
-      <button class="lens-control is-active" type="button" data-lens-mode="clear" aria-pressed="true">Прозрачные</button>
-      <button class="lens-control" type="button" data-lens-mode="blue" aria-pressed="false">Blue Blocker</button>
-      <button class="lens-control" type="button" data-lens-mode="photo-clear" aria-pressed="false" aria-controls="photochrome-controls">Фотохром</button>
-    </div>
-    <div class="lens-controls__photochrome" id="photochrome-controls" role="group" aria-label="Оттенок фотохромной линзы" aria-hidden="true">
-      <button class="lens-control lens-control--compact is-active" type="button" data-lens-mode="photo-clear" aria-pressed="true">Прозрачный</button>
-      <button class="lens-control lens-control--compact" type="button" data-lens-mode="photo-gray" aria-pressed="false">Серый</button>
-      <button class="lens-control lens-control--compact" type="button" data-lens-mode="photo-brown" aria-pressed="false">Коричневый</button>
-    </div>
-  </div>
-
-  <div id="lens-apple-status" role="status">Загрузка оптики…</div>
 </section>
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap');
-
-  #lens-apple-widget {
-    position: relative;
-    width: 100%;
-    height: min(85vw, 800px);
-    min-height: 500px;
-    overflow: hidden;
-    background: #191b21; /* Базовый графит */
-    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
-    color: #ffffff;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  #lens-apple-canvas {
-    display: block; width: 100%; height: 100%;
-    touch-action: none; cursor: grab;
-  }
-  #lens-apple-canvas:active { cursor: grabbing; }
-
-  .apple-hud { position: absolute; z-index: 10; pointer-events: none; }
-  .top-left { top: 40px; left: 40px; }
-  .bottom-right { right: 40px; bottom: 108px; text-align: right; }
-
-  .hud-title {
-    margin-bottom: 4px; color: rgba(255, 255, 255, 0.95);
-    font-size: 15px; font-weight: 500; letter-spacing: 0.15em;
-  }
-  .hud-subtitle {
-    color: rgba(255, 255, 255, 0.5); font-size: 12px;
-    font-weight: 300; letter-spacing: 0.05em; text-transform: uppercase;
-  }
-  .hud-spec {
-    margin-bottom: 2px; color: rgba(255, 255, 255, 0.95);
-    font-size: 22px; font-weight: 300; letter-spacing: 0.02em;
-  }
-  .hud-spec-sub {
-    color: rgba(255, 255, 255, 0.4); font-size: 11px;
-    font-weight: 400; letter-spacing: 0.1em;
-  }
-
-  .apple-hint {
-    position: absolute; z-index: 10; bottom: 108px; left: 50%;
-    padding: 8px 16px; color: rgba(255, 255, 255, 0.8);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px;
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    font-size: 12px; font-weight: 400; letter-spacing: 0.05em;
-    pointer-events: none; transform: translateX(-50%);
-    transition: opacity 0.5s ease; animation: pulse 3s infinite ease-in-out;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
-    50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
-  }
-
-  .lens-controls {
-    position: absolute; z-index: 20; bottom: 30px; left: 50%;
-    display: grid; width: min(100% - 32px, 510px); gap: 9px;
-    pointer-events: auto; transform: translateX(-50%);
-  }
-
-  .lens-controls__primary, .lens-controls__photochrome {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
-  }
-
-  .lens-controls__photochrome {
-    max-height: 0; opacity: 0; overflow: hidden; pointer-events: none;
-    transform: translateY(-5px); transition: max-height 420ms ease, opacity 320ms ease, transform 420ms ease;
-  }
-
-  .lens-controls__photochrome.is-visible {
-    max-height: 48px; opacity: 1; pointer-events: auto; transform: translateY(0);
-  }
-
-  .lens-control {
-    appearance: none; min-height: 38px; padding: 9px 15px;
-    color: rgba(255, 255, 255, 0.88); background: rgba(255, 255, 255, 0.055);
-    border: 1px solid rgba(255, 255, 255, 0.19); border-radius: 999px;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(14px) saturate(125%); -webkit-backdrop-filter: blur(14px) saturate(125%);
-    cursor: pointer; font: inherit; font-size: 11px; font-weight: 400;
-    letter-spacing: 0.04em; line-height: 1; white-space: nowrap;
-    transition: background 420ms ease, border-color 420ms ease, box-shadow 420ms ease, color 420ms ease, transform 300ms ease;
-  }
-
-  .lens-control:hover {
-    color: #ffffff; background: rgba(255, 255, 255, 0.09); border-color: rgba(255, 255, 255, 0.31);
-  }
-
-  .lens-control.is-active {
-    color: #ffffff; background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.45);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.17);
-  }
-
-  .lens-control--compact { min-height: 32px; padding: 7px 13px; font-size: 10px; }
-
-  #lens-apple-status {
-    position: absolute; inset: 0; display: grid; place-items: center;
-    color: rgba(255, 255, 255, 0.4); font-size: 13px; font-weight: 300;
-    letter-spacing: 0.1em; pointer-events: none; text-transform: uppercase;
-  }
-
-  @media (max-width: 640px) {
-    #lens-apple-widget { height: max(112vw, 500px); }
-    .top-left { top: 24px; left: 24px; }
-    .bottom-right { right: 24px; bottom: 118px; }
-    .apple-hint { bottom: 154px; }
-    .lens-controls { bottom: 20px; width: min(100% - 24px, 430px); }
-  }
+  #lens-apple-widget { width: 100%; height: 500px; position: relative; background: #000; overflow: hidden; }
+  #lens-apple-canvas { width: 100%; height: 100%; cursor: grab; }
+  .lens-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .lens-control { padding: 10px 20px; border-radius: 20px; background: #333; color: #fff; border: none; cursor: pointer; }
+  .lens-control.is-active { background: #555; outline: 2px solid #fff; }
 </style>
-
-<script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.160.1/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.1/examples/jsm/"
-    }
-  }
-</script>
 
 <script type="module">
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-  const MODEL_URL = 'https://raw.githubusercontent.com/wb123321q-cpu/premium-lens-assets/main/3Dlens.glb';
-  const TRANSITION_MS = 650;
   const container = document.getElementById('lens-apple-widget');
-  const canvas = document.getElementById('lens-apple-canvas');
-  const status = document.getElementById('lens-apple-status');
-  const dragHint = document.getElementById('drag-hint');
-  const photochromeControls = document.getElementById('photochrome-controls');
-  const controls = [...document.querySelectorAll('[data-lens-mode]')];
-
   const scene = new THREE.Scene();
-  scene.background = null; // Убираем плоский фон, делаем объемный
+  const camera = new THREE.PerspectiveCamera(30, container.clientWidth/container.clientHeight, 0.1, 1000);
+  camera.position.z = 5;
 
-  const camera = new THREE.PerspectiveCamera(28, 1, 0.01, 100);
-  camera.position.set(0, 0, 6.5);
+  const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('lens-apple-canvas'), antialias: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.35;
-
-  // ==========================================
-  // ОБЪЕМНЫЙ ФОН ДЛЯ КРИСТАЛЬНОГО СВЕЧЕНИЯ
-  // ==========================================
-  // Физическая стена сзади линзы
-  const bgMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(50, 50),
-    new THREE.MeshStandardMaterial({ color: 0x14161a, roughness: 1.0 })
-  );
-  bgMesh.position.z = -10;
-  scene.add(bgMesh);
-
-  // Мягкий прожектор, который дает линзе свечение изнутри
-  const backGlow = new THREE.PointLight(0xffffff, 80, 25);
-  backGlow.position.set(0, 0, -3);
-  scene.add(backGlow);
-
-  scene.add(new THREE.AmbientLight(0xffffff, 0.2));
-
-  // ==========================================
-  // НЕВИДИМАЯ СТУДИЯ И ИЗОГНУТЫЕ БЛИКИ
-  // ==========================================
-  const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0x050505); 
-  
-  // Создаем ИЗОГНУТЫЙ цилиндр для блика (огибает форму линзы)
-  const radius = 10;
-  
-  // Белая сердцевина блика
-  const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, toneMapped: false });
-  const coreMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius, radius, 12, 32, 1, true, Math.PI * 1.15, Math.PI * 0.03),
-    coreMat
-  );
-  envScene.add(coreMesh);
-
-  // Цветной остаточный рефлекс (шире, создает окантовку)
-  const edgeMat = new THREE.MeshBasicMaterial({ color: 0x00ff73, side: THREE.DoubleSide, toneMapped: false });
-  const edgeMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius + 0.2, radius + 0.2, 12, 32, 1, true, Math.PI * 1.14, Math.PI * 0.05),
-    edgeMat
-  );
-  envScene.add(edgeMesh);
-
-  // Контровой свет (Rim Light) справа
-  const rimLight = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.0, 15.0),
-    new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })
-  );
-  rimLight.position.set(6.0, 0.0, -3.0);
-  rimLight.lookAt(0, 0, 0);
-  envScene.add(rimLight);
-
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  let environmentTarget = null;
-  let lastEnvironmentUpdate = 0;
-
-  function refreshEnvironment(now = 0) {
-    if (now && now - lastEnvironmentUpdate < 33) return;
-    lastEnvironmentUpdate = now;
-    const nextTarget = pmrem.fromScene(envScene, 0.02);
-    const previousTarget = environmentTarget;
-    environmentTarget = nextTarget;
-    scene.environment = nextTarget.texture;
-    previousTarget?.dispose();
-  }
-  refreshEnvironment();
-
-  // ==========================================
-  // МАТЕРИАЛ: ИДЕАЛЬНАЯ ОПТИКА
-  // ==========================================
-  const glassMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,       
-    transmission: 1.0,     
-    transparent: true,
-    opacity: 1.0,
-    roughness: 0.0,
-    metalness: 0.0,
-    ior: 1.52,
-    thickness: 0.8,        // Увеличил толщину для красивого искажения заднего фона
-    attenuationColor: new THREE.Color(0xffffff), 
-    attenuationDistance: 5.0, 
-    clearcoat: 1.0,        
+  // Физика материала: максимально приближенная к реальному стеклу
+  const lensMat = new THREE.MeshPhysicalMaterial({
+    transmission: 0.98,
+    roughness: 0.05,
+    thickness: 1.5,
+    ior: 1.5,
+    clearcoat: 1.0,
     clearcoatRoughness: 0.0,
-    dispersion: 0.015,
-    envMapIntensity: 1.2
+    envMapIntensity: 2.0
   });
 
-  // ==========================================
-  // НАСТРОЙКИ ПОКРЫТИЙ 
-  // ==========================================
-  const coatingPresets = {
-    clear: {
-      attenuationColor: '#ffffff', attenuationDistance: 5.0, 
-      envMapIntensity: 1.2, edgeColor: '#00ff73' // Яркий изумруд
-    },
-    blue: {
-      attenuationColor: '#fff5de', attenuationDistance: 3.5, // Легкий теплый/шампань оттенок
-      envMapIntensity: 1.2, edgeColor: '#2b4cff' // Глубокий сине-фиолетовый
-    },
-    'photo-clear': {
-      attenuationColor: '#ffffff', attenuationDistance: 5.0,
-      envMapIntensity: 1.2, edgeColor: '#00ff73'
-    },
-    'photo-gray': {
-      attenuationColor: '#303338', attenuationDistance: 0.6, // Глубокий графит, но пропускает свет
-      envMapIntensity: 3.0, edgeColor: '#ffffff' // Мощный зеркальный блеск
-    },
-    'photo-brown': {
-      attenuationColor: '#6e3911', attenuationDistance: 0.6, // Янтарно-коричневый
-      envMapIntensity: 3.0, edgeColor: '#ffcc99' 
-    }
+  // ЭТО ГЛАВНОЕ: Мы создаем ДВА разных блика и переключаем их прозрачность
+  const createFlare = (color) => {
+    const geo = new THREE.TorusGeometry(1, 0.1, 16, 100);
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0 });
+    const mesh = new THREE.Mesh(geo, mat);
+    return mesh;
   };
 
-  function color(value) { return new THREE.Color(value); }
+  const greenFlare = createFlare(0x00ff80); // Зеленый AR
+  const blueFlare = createFlare(0x4080ff);  // Синий Blue Blocker
+  
+  scene.add(greenFlare);
+  scene.add(blueFlare);
+  greenFlare.material.opacity = 1; // По умолчанию зеленый
 
-  function snapshotMaterial() {
-    return {
-      attenuationColor: glassMaterial.attenuationColor.clone(),
-      attenuationDistance: glassMaterial.attenuationDistance,
-      envMapIntensity: glassMaterial.envMapIntensity,
-      edgeColor: edgeMat.color.clone()
+  // Логика переключения
+  document.querySelectorAll('.lens-control').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.lens-control').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      
+      const type = btn.dataset.coat;
+      greenFlare.material.opacity = type === 'green' ? 1 : 0;
+      blueFlare.material.opacity = type === 'blue' ? 1 : 0;
     };
-  }
-
-  function normalizePreset(preset) {
-    return {
-      attenuationColor: color(preset.attenuationColor),
-      attenuationDistance: preset.attenuationDistance,
-      envMapIntensity: preset.envMapIntensity,
-      edgeColor: color(preset.edgeColor)
-    };
-  }
-
-  let coatingTransition = null;
-
-  function setCoating(mode) {
-    const target = normalizePreset(coatingPresets[mode]);
-    coatingTransition = { start: performance.now(), from: snapshotMaterial(), to: target };
-  }
-
-  function updateCoating(now) {
-    if (!coatingTransition) return;
-    const progress = Math.min((now - coatingTransition.start) / TRANSITION_MS, 1);
-    const eased = progress * progress * (3 - 2 * progress);
-    const { from, to } = coatingTransition;
-
-    glassMaterial.attenuationColor.copy(from.attenuationColor).lerp(to.attenuationColor, eased);
-    glassMaterial.attenuationDistance = THREE.MathUtils.lerp(from.attenuationDistance, to.attenuationDistance, eased);
-    glassMaterial.envMapIntensity = THREE.MathUtils.lerp(from.envMapIntensity, to.envMapIntensity, eased);
-    edgeMat.color.copy(from.edgeColor).lerp(to.edgeColor, eased);
-    refreshEnvironment(now);
-
-    if (progress === 1) coatingTransition = null;
-  }
-
-  function updateControlState(mode) {
-    const isPhotochrome = mode.startsWith('photo-');
-    photochromeControls.classList.toggle('is-visible', isPhotochrome);
-    photochromeControls.setAttribute('aria-hidden', String(!isPhotochrome));
-
-    controls.forEach((button) => {
-      const buttonMode = button.dataset.lensMode;
-      const isPrimaryPhotochrome = button.closest('.lens-controls__primary') && buttonMode === 'photo-clear';
-      const isActive = isPrimaryPhotochrome ? isPhotochrome : buttonMode === mode;
-      button.classList.toggle('is-active', isActive);
-      button.setAttribute('aria-pressed', String(isActive));
-    });
-  }
-
-  controls.forEach((button) => {
-    button.addEventListener('click', () => {
-      const mode = button.dataset.lensMode;
-      updateControlState(mode);
-      setCoating(mode);
-    });
   });
 
-  const floatGroup = new THREE.Group();
-  const spinGroup = new THREE.Group();
-  floatGroup.add(spinGroup);
-  scene.add(floatGroup);
-
-  const loader = new GLTFLoader();
-  loader.setCrossOrigin('anonymous');
-  loader.load(MODEL_URL, (gltf) => {
-    const model = gltf.scene;
-    const lensMeshes = [];
-
-    model.traverse((object) => {
-      if (!object.isMesh) return;
-      const name = `${object.name} ${object.parent?.name || ''}`.toLowerCase();
-      if (/lens|линз/.test(name)) lensMeshes.push(object);
-    });
-
-    const visibleMeshes = lensMeshes.length ? lensMeshes : (() => {
-      const all = []; model.traverse((object) => { if (object.isMesh) all.push(object); }); return all;
-    })();
-    const lensBox = new THREE.Box3();
-    visibleMeshes.forEach((mesh) => lensBox.expandByObject(mesh));
-    const lensSize = lensBox.getSize(new THREE.Vector3());
-    const lensCenter = lensBox.getCenter(new THREE.Vector3());
-
-    const scale = 2.4 / Math.max(lensSize.x, lensSize.y, lensSize.z);
-    model.scale.setScalar(scale);
-    model.position.set(-lensCenter.x * scale, -lensCenter.y * scale, -lensCenter.z * scale);
-
-    model.traverse((object) => {
-      if (!object.isMesh) return;
-      const isLens = visibleMeshes.includes(object);
-      object.visible = isLens;
-      if (isLens) object.material = glassMaterial;
-    });
-
-    spinGroup.rotation.x = THREE.MathUtils.degToRad(15);
-    spinGroup.rotation.y = THREE.MathUtils.degToRad(25);
-    spinGroup.add(model);
-    status.style.display = 'none';
-  }, undefined, (error) => {
-    console.error(error);
-    status.textContent = 'Ошибка загрузки модуля.';
-  });
-
-  function resize() {
-    const { width, height } = container.getBoundingClientRect();
-    renderer.setSize(width, height, false);
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  }
-  new ResizeObserver(resize).observe(container);
-  resize();
-
-  let isDragging = false, lastPointerX = 0, lastPointerY = 0;
-  let targetRotationX = THREE.MathUtils.degToRad(15), targetRotationY = THREE.MathUtils.degToRad(25);
-
-  canvas.addEventListener('pointerdown', (event) => {
-    isDragging = true; lastPointerX = event.clientX; lastPointerY = event.clientY;
-    canvas.setPointerCapture(event.pointerId); dragHint.style.opacity = '0';
-  });
-
-  canvas.addEventListener('pointermove', (event) => {
-    if (!isDragging) return;
-    targetRotationY += (event.clientX - lastPointerX) * 0.006;
-    targetRotationX += (event.clientY - lastPointerY) * 0.006;
-    targetRotationX = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, targetRotationX));
-    lastPointerX = event.clientX; lastPointerY = event.clientY;
-  });
-
-  const releasePointer = () => { isDragging = false; };
-  canvas.addEventListener('pointerup', releasePointer);
-  canvas.addEventListener('pointercancel', releasePointer);
-
-  const clock = new THREE.Clock();
-  function render(now) {
-    const elapsedTime = clock.getElapsedTime();
-
-    if (!isDragging) targetRotationY += 0.0025;
-    spinGroup.rotation.y += (targetRotationY - spinGroup.rotation.y) * 0.05;
-    spinGroup.rotation.x += (targetRotationX - spinGroup.rotation.x) * 0.05;
-    floatGroup.position.y = Math.sin(elapsedTime * 1.2) * 0.08;
-
-    updateCoating(now);
+  // Рендер петля
+  function animate() {
+    requestAnimationFrame(animate);
     renderer.render(scene, camera);
-    requestAnimationFrame(render);
   }
-  requestAnimationFrame(render);
+  animate();
 </script>
