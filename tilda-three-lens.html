@@ -17,7 +17,7 @@
       <button class="lens-control" type="button" data-lens-mode="blue">Blue Blocker</button>
       <button class="lens-control" type="button" data-lens-mode="photo-clear" aria-controls="photochrome-controls">Фотохром</button>
     </div>
-    <div class="lens-controls__photochrome" id="photochrome-controls" role="group" aria-hidden="true">
+    <div class="lens-controls__photochrome" id="photochrome-controls" role="group" aria-label="Оттенок фотохромной линзы" aria-hidden="true">
       <button class="lens-control lens-control--compact is-active" type="button" data-lens-mode="photo-clear">Прозрачный</button>
       <button class="lens-control lens-control--compact" type="button" data-lens-mode="photo-gray">Серый 75%</button>
       <button class="lens-control lens-control--compact" type="button" data-lens-mode="photo-brown">Коричневый 75%</button>
@@ -31,11 +31,17 @@
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap');
 
   #lens-21dev-widget {
-    position: relative; width: 100%; height: min(85vw, 750px); min-height: 500px;
-    overflow: hidden; background: #15171c; /* Графит */
+    position: relative;
+    width: 100%;
+    height: min(85vw, 750px);
+    min-height: 500px;
+    overflow: hidden;
+    background: #15171c; 
     font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
-    color: #ffffff; -webkit-font-smoothing: antialiased;
+    color: #ffffff;
+    -webkit-font-smoothing: antialiased;
   }
+
   #lens-21dev-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
   #lens-21dev-canvas:active { cursor: grabbing; }
   
@@ -43,17 +49,18 @@
   .top-left { top: 40px; left: 40px; }
   .bottom-right { right: 40px; bottom: 108px; text-align: right; }
   
-  .hud-title { font-size: 14px; font-weight: 500; letter-spacing: 0.15em; margin-bottom: 4px; }
+  .hud-title { font-size: 14px; font-weight: 500; letter-spacing: 0.15em; color: #fff; margin-bottom: 4px; }
   .hud-subtitle { font-size: 11px; font-weight: 300; letter-spacing: 0.05em; color: rgba(255,255,255,0.4); text-transform: uppercase; }
-  .hud-spec { font-size: 20px; font-weight: 300; letter-spacing: 0.02em; }
+  .hud-spec { font-size: 20px; font-weight: 300; letter-spacing: 0.02em; color: #fff; }
   .hud-spec-sub { font-size: 10px; font-weight: 400; letter-spacing: 0.1em; color: rgba(255,255,255,0.3); }
 
   .apple-hint {
     position: absolute; z-index: 10; bottom: 108px; left: 50%; transform: translateX(-50%);
     padding: 8px 16px; color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.03);
     border: 1px solid rgba(255,255,255,0.08); border-radius: 30px; backdrop-filter: blur(12px);
-    font-size: 11px; pointer-events: none; animation: pulse 2.5s infinite ease-in-out;
+    font-size: 11px; pointer-events: none; transition: opacity 0.4s; animation: pulse 2.5s infinite ease-in-out;
   }
+
   @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.9; } }
 
   .lens-controls {
@@ -61,9 +68,10 @@
     display: grid; width: min(100% - 32px, 480px); gap: 10px; transform: translateX(-50%);
   }
   .lens-controls__primary, .lens-controls__photochrome { display: flex; justify-content: center; gap: 8px; }
+  
   .lens-controls__photochrome {
     max-height: 0; opacity: 0; overflow: hidden; pointer-events: none;
-    transform: translateY(-5px); transition: all 350ms ease;
+    transform: translateY(-5px); transition: max-height 400ms ease, opacity 300ms ease, transform 400ms ease;
   }
   .lens-controls__photochrome.is-visible { max-height: 45px; opacity: 1; pointer-events: auto; transform: translateY(0); }
 
@@ -78,7 +86,7 @@
   .lens-control.is-active { color: #fff; background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
   .lens-control--compact { min-height: 30px; padding: 6px 12px; font-size: 10px; }
 
-  #lens-21dev-status { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,0.3); font-size: 12px; letter-spacing: 0.1em; pointer-events: none; }
+  #lens-21dev-status { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,0.3); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; pointer-events: none; }
 
   @media (max-width: 640px) {
     .top-left { top: 20px; left: 20px; }
@@ -102,6 +110,7 @@
   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
   const MODEL_URL = 'https://raw.githubusercontent.com/wb123321q-cpu/premium-lens-assets/main/3Dlens.glb';
+  const TRANSITION_MS = 650;
   const container = document.getElementById('lens-21dev-widget');
   const canvas = document.getElementById('lens-21dev-canvas');
   const status = document.getElementById('lens-21dev-status');
@@ -111,6 +120,7 @@
   const controls = [...document.querySelectorAll('[data-lens-mode]')];
 
   const scene = new THREE.Scene();
+  
   const camera = new THREE.PerspectiveCamera(26, container.clientWidth / container.clientHeight, 0.1, 100);
   camera.position.set(0, 0, 5.8);
 
@@ -119,39 +129,37 @@
   renderer.setSize(container.clientWidth, container.clientHeight, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.35;
+  renderer.toneMappingExposure = 1.4; // Повысили общую сочность
 
   // ==========================================
-  // СТУДИЯ ОТРАЖЕНИЙ (ENV SCENE)
+  // СТУДИЯ ЧИСТЫХ ОПТИЧЕСКИХ ОТРАЖЕНИЙ
   // ==========================================
   const envScene = new THREE.Scene();
   envScene.background = new THREE.Color(0x0a0b0d);
 
-  // ГЛАВНЫЙ БЛИК: Меняет цвет целиком, без примесей белого
-  const reflectionStrip = new THREE.Mesh(
-    new THREE.TorusGeometry(3.0, 0.16, 16, 64),
-    new THREE.MeshBasicMaterial({ color: 0x00f070, side: THREE.DoubleSide, toneMapped: false })
-  );
-  reflectionStrip.position.set(-1.5, 1.0, 3.0);
-  reflectionStrip.rotation.y = Math.PI / 4;
-  envScene.add(reflectionStrip);
+  // Основной изогнутый дуговой блик (меняет цвет на 100%, без белой подмеси)
+  const stripGeo = new THREE.TorusGeometry(2.8, 0.16, 12, 64);
+  const stripMat = new THREE.MeshBasicMaterial({ color: 0x00f070, side: THREE.DoubleSide, toneMapped: false });
+  const stripLight = new THREE.Mesh(stripGeo, stripMat);
+  stripLight.position.set(-1.5, 1.0, 3.0);
+  stripLight.rotation.y = Math.PI / 4;
+  envScene.add(stripLight);
 
-  // МЯГКИЙ ЗАДНИЙ СВЕТ: Включается только для фотохромов, чтобы линза не сливалась с черным фоном
-  const backSoftLight = new THREE.Mesh(
-    new THREE.PlaneGeometry(8.0, 8.0),
-    new THREE.MeshBasicMaterial({ color: 0x111111, toneMapped: false })
-  );
-  backSoftLight.position.set(5.0, 0.0, -4.0);
-  backSoftLight.lookAt(0, 0, 0);
-  envScene.add(backSoftLight);
+  // Мягкий контролируемый Rim Light (Контурный свет) сзади
+  const rimGeo = new THREE.PlaneGeometry(3.0, 15.0);
+  const rimMat = new THREE.MeshBasicMaterial({ color: 0x000000, toneMapped: false }); // На старте выключен для прозрачных режимов
+  const rimLight = new THREE.Mesh(rimGeo, rimMat);
+  rimLight.position.set(6.0, 0.0, -2.5);
+  rimLight.lookAt(0, 0, 0);
+  envScene.add(rimLight);
 
-  const pmremGenerator = new THREE.PMREMGenerator(renderer);
-  pmremGenerator.compileEquirectangularShader();
-  scene.environment = pmremGenerator.fromScene(envScene).texture;
+  // Подсветка окружения
+  envScene.add(new THREE.AmbientLight(0x222428)); 
 
-  // ==========================================
-  // ФИЗИЧЕСКИЙ МАТЕРИАЛ СТЕКЛА
-  // ==========================================
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(envScene).texture;
+
+  // Базовый прозрачный материал
   const glassMaterial = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
     transmission: 1.0,
@@ -162,84 +170,53 @@
     ior: 1.52,
     thickness: 0.5,
     attenuationColor: new THREE.Color(0xffffff),
-    attenuationDistance: 5.0,
+    attenuationDistance: 6.0,
     clearcoat: 1.0,
     clearcoatRoughness: 0.0,
-    dispersion: 0.012,
-    envMapIntensity: 2.0
+    dispersion: 0.016, // Радужка по торцу линзы
+    envMapIntensity: 2.2
   });
 
-  // ==========================================
-  // ПРЕСЕТЫ ПОКРЫТИЙ
-  // ==========================================
+  // Точные цветовые коэффициенты под референсы
   const presets = {
     'clear': { 
-      strip: 0x00f070, // Чистый зеленый блик
-      attCol: 0xffffff, attDist: 5.0, envInt: 2.0, bgSoft: 0x111111, title: 'AR GREEN' 
+      stripColor: 0x00f070, rimColor: 0x222222, // Зелёный блик, очень мягкий контур
+      glassColor: 0xffffff, attColor: 0xffffff, attDist: 6.0, env: 2.2, title: 'AR GREEN' 
     },
     'blue': { 
-      strip: 0x1144ff, // Чистый синий блик
-      attCol: 0xfffcf5, attDist: 4.5, envInt: 2.2, bgSoft: 0x111111, title: 'BLUE BLOCKER' 
+      stripColor: 0x0033ff, rimColor: 0x112255, // Чистый синий блик (Blue Blocker)
+      glassColor: 0xffffff, attColor: 0xfffcf0, attDist: 5.0, env: 2.4, title: 'BLUE BLOCKER' 
     },
     'photo-clear': { 
-      strip: 0x00f070, 
-      attCol: 0xffffff, attDist: 5.0, envInt: 2.0, bgSoft: 0x111111, title: 'TRANSITIONS' 
+      stripColor: 0x00f070, rimColor: 0x222222,
+      glassColor: 0xffffff, attColor: 0xffffff, attDist: 6.0, env: 2.2, title: 'TRANSITIONS' 
     },
     'photo-gray': { 
-      strip: 0xffffff, // Белый блик для темных очков
-      attCol: 0x1f2126, attDist: 0.35, envInt: 4.0, bgSoft: 0x4a4a4a, title: 'PHOTOCHROME GRAY 75%' 
+      stripColor: 0xffffff, rimColor: 0xffffff, // В фотохроме блики становятся белыми зеркальными
+      glassColor: 0xcccccc, attColor: 0x1c1e22, attDist: 0.38, env: 3.5, title: 'PHOTOCHROME GRAY 75%' 
     },
     'photo-brown': { 
-      strip: 0xffeedd, // Слегка теплый белый блик
-      attCol: 0x361905, // ИДЕАЛЬНЫЙ ШОКОЛАДНЫЙ (кофейный, без рыжего)
-      attDist: 0.28, envInt: 4.0, bgSoft: 0x4a4a4a, title: 'PHOTOCHROME BROWN 75%' 
+      stripColor: 0xffffff, rimColor: 0xffebcc, // Тёплый зеркальный блик для коричневого
+      glassColor: 0xbaa899, attColor: 0x2b1405, attDist: 0.28, env: 3.5, title: 'PHOTOCHROME BROWN 75%' // Настоящий шоколадный тон
     }
   };
 
-  let currentSettings = { ...presets['clear'] };
   let targetSettings = { ...presets['clear'] };
-  let isTransitioning = false;
-
-  // Плавная математическая интерполяция
-  function lerpColor(current, target, factor = 0.1) {
-    const c = new THREE.Color(current);
-    c.lerp(new THREE.Color(target), factor);
-    return c.getHex();
-  }
 
   function lerpMaterials() {
-    if (!isTransitioning) return;
-
-    // Считаем разницу для остановки анимации
-    const distDiff = Math.abs(currentSettings.attDist - targetSettings.attDist);
-
-    // Интерполируем значения
-    currentSettings.strip = lerpColor(currentSettings.strip, targetSettings.strip, 0.08);
-    currentSettings.bgSoft = lerpColor(currentSettings.bgSoft, targetSettings.bgSoft, 0.08);
-    currentSettings.attCol = lerpColor(currentSettings.attCol, targetSettings.attCol, 0.08);
-    currentSettings.attDist = THREE.MathUtils.lerp(currentSettings.attDist, targetSettings.attDist, 0.08);
-    currentSettings.envInt = THREE.MathUtils.lerp(currentSettings.envInt, targetSettings.envInt, 0.08);
-
-    // Применяем в Three.js
-    reflectionStrip.material.color.setHex(currentSettings.strip);
-    backSoftLight.material.color.setHex(currentSettings.bgSoft);
-    glassMaterial.attenuationColor.setHex(currentSettings.attCol);
-    glassMaterial.attenuationDistance = currentSettings.attDist;
-    glassMaterial.envMapIntensity = currentSettings.envInt;
-
-    // ЖИЗНЕННО ВАЖНО: Обновляем карту окружения в реальном времени!
-    const oldEnv = scene.environment;
-    scene.environment = pmremGenerator.fromScene(envScene).texture;
-    if (oldEnv) oldEnv.dispose();
-
-    if (distDiff < 0.01) isTransitioning = false;
+    stripMat.color.lerp(new THREE.Color(targetSettings.stripColor), 0.08);
+    rimMat.color.lerp(new THREE.Color(targetSettings.rimColor), 0.08);
+    glassMaterial.color.lerp(new THREE.Color(targetSettings.glassColor), 0.08);
+    glassMaterial.attenuationColor.lerp(new THREE.Color(targetSettings.attColor), 0.08);
+    glassMaterial.attenuationDistance = THREE.MathUtils.lerp(glassMaterial.attenuationDistance, targetSettings.attDist, 0.08);
+    glassMaterial.envMapIntensity = THREE.MathUtils.lerp(glassMaterial.envMapIntensity, targetSettings.env, 0.08);
+    
+    scene.environment = pmrem.fromScene(envScene).texture;
   }
 
-  // --- ЛОГИКА ИНТЕРФЕЙСА ---
   function changeMode(mode) {
     targetSettings = presets[mode];
     hudSpecText.textContent = targetSettings.title;
-    isTransitioning = true;
 
     const isPhoto = mode.startsWith('photo-');
     photochromeControls.classList.toggle('is-visible', isPhoto);
@@ -277,7 +254,7 @@
     status.style.display = 'none';
   });
 
-  // --- УПРАВЛЕНИЕ И ИНЕРЦИЯ ---
+  // --- УПРАВЛЕНИЕ, ИНЕРЦИЯ И ФИКСАЦИЯ ПРИ НАВЕДЕНИИ ---
   let isDragging = false, isHovered = false;
   let lastX = 0, lastY = 0;
   let targetRotX = 0, targetRotY = 0;
@@ -286,8 +263,10 @@
   container.addEventListener('pointerleave', () => { isHovered = false; isDragging = false; });
 
   container.addEventListener('pointerdown', (e) => {
-    isDragging = true; lastX = e.clientX; lastY = e.clientY;
-    container.setPointerCapture(e.pointerId); dragHint.style.opacity = '0';
+    isDragging = true;
+    lastX = e.clientX; lastY = e.clientY;
+    container.setPointerCapture(e.pointerId);
+    dragHint.style.opacity = '0';
   });
 
   container.addEventListener('pointermove', (e) => {
@@ -305,7 +284,10 @@
   function render() {
     requestAnimationFrame(render);
 
-    if (!isHovered && !isDragging) targetRotY -= 0.003; 
+    // Авто-вращение активно только когда пользователь не взаимодействует с виджетом
+    if (!isHovered && !isDragging) {
+      targetRotY -= 0.003; 
+    }
 
     spinGroup.rotation.y += (targetRotY - spinGroup.rotation.y) * 0.05;
     spinGroup.rotation.x += (targetRotX - spinGroup.rotation.x) * 0.05;
