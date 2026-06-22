@@ -24,7 +24,7 @@
 </section>
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&display=swap');
 
   #lens-pro-widget {
     position: relative;
@@ -32,7 +32,7 @@
     height: min(85vw, 800px);
     min-height: 600px;
     overflow: hidden;
-    background: #f5f5f7; /* Премиальный светло-серый фон Apple */
+    background: #f5f5f7;
     font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
     color: #1d1d1f;
     -webkit-font-smoothing: antialiased;
@@ -45,9 +45,7 @@
   }
   #lens-pro-canvas:active { cursor: grabbing; }
   
-  .hud-overlay {
-    position: absolute; z-index: 10; pointer-events: none;
-  }
+  .hud-overlay { position: absolute; z-index: 10; pointer-events: none; }
   .top-left { top: 40px; left: 40px; }
   .bottom-left { bottom: 40px; left: 40px; pointer-events: auto; }
   .bottom-right { bottom: 40px; right: 40px; pointer-events: auto; }
@@ -61,13 +59,11 @@
     color: #86868b; text-transform: uppercase;
   }
 
-  .coating-controls {
-    display: flex; flex-direction: column; gap: 8px;
-  }
+  .coating-controls { display: flex; flex-direction: column; gap: 8px; }
   
   .tech-btn {
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 12px;
     padding: 10px 16px;
@@ -76,7 +72,7 @@
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0,0,0,0.02);
   }
-  .tech-btn:hover { background: rgba(255, 255, 255, 0.9); }
+  .tech-btn:hover { background: rgba(255, 255, 255, 1); }
   .tech-btn.active {
     background: #1d1d1f; color: #ffffff;
     border-color: #1d1d1f; box-shadow: 0 8px 20px rgba(0,0,0,0.15);
@@ -136,8 +132,8 @@
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+  import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-  // Инициализация света для скользящего блика
   RectAreaLightUniformsLib.init();
 
   const MODEL_URL = 'https://raw.githubusercontent.com/wb123321q-cpu/premium-lens-assets/main/3Dlens.glb';
@@ -148,6 +144,7 @@
   const buttons = document.querySelectorAll('.tech-btn');
 
   const scene = new THREE.Scene();
+  // Устанавливаем базовый светлый фон
   scene.background = new THREE.Color(0xf5f5f7); 
 
   const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
@@ -160,57 +157,68 @@
   renderer.toneMappingExposure = 1.0; 
 
   // ==========================================
-  // СТУДИЯ: ТЕМНЫЕ ФЛАГИ ДЛЯ КОНТУРА
+  // 1. ИДЕАЛЬНЫЕ ОТРАЖЕНИЯ (СТУДИЯ)
   // ==========================================
-  const envScene = new THREE.Scene();
-  envScene.background = new THREE.Color(0xffffff);
-  
-  const darkMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
-  const planeGeo = new THREE.PlaneGeometry(20, 20);
-  
-  const leftFlag = new THREE.Mesh(planeGeo, darkMat);
-  leftFlag.position.set(-12, 0, 0); leftFlag.lookAt(0,0,0); envScene.add(leftFlag);
-  
-  const rightFlag = new THREE.Mesh(planeGeo, darkMat);
-  rightFlag.position.set(12, 0, 0); rightFlag.lookAt(0,0,0); envScene.add(rightFlag);
-  
-  const bottomFlag = new THREE.Mesh(planeGeo, darkMat);
-  bottomFlag.position.set(0, -12, 0); bottomFlag.lookAt(0,0,0); envScene.add(bottomFlag);
-
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  pmrem.compileEquirectangularShader();
-  scene.environment = pmrem.fromScene(envScene).texture;
+  // Используем встроенную реалистичную студию для микро-отражений
+  const pmremGenerator = new THREE.PMREMGenerator(renderer);
+  pmremGenerator.compileEquirectangularShader();
+  scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 
   // ==========================================
-  // СТУДИЯ: ИСТОЧНИКИ СВЕТА ДЛЯ БЛИКОВ
+  // 2. ФОН ДЛЯ ПРЕЛОМЛЕНИЯ (ТОЛЩИНА СТЕКЛА)
   // ==========================================
-  // Главная лампа для скользящего цветного блика
-  const rectLight = new THREE.RectAreaLight(0x00ffaa, 8.0, 15, 0.4);
-  rectLight.position.set(0, 4, 4);
+  // Рисуем премиальный фон (сетка + водяной знак), который линза будет искажать
+  const canvasBg = document.createElement('canvas');
+  canvasBg.width = 2048; canvasBg.height = 2048;
+  const ctx = canvasBg.getContext('2d');
+  ctx.fillStyle = '#f5f5f7';
+  ctx.fillRect(0, 0, 2048, 2048);
+  
+  ctx.strokeStyle = '#ebebeb'; // Тонкая светлая сетка
+  ctx.lineWidth = 4;
+  for(let i=0; i<=2048; i+=128) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 2048); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(2048, i); ctx.stroke();
+  }
+  
+  ctx.fillStyle = '#e2e2e6';
+  ctx.font = '800 200px Inter, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('MIR OPTIKI', 1024, 1024);
+
+  const bgTexture = new THREE.CanvasTexture(canvasBg);
+  const bgPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(30, 30),
+    new THREE.MeshBasicMaterial({ map: bgTexture, depthWrite: false })
+  );
+  bgPlane.position.z = -5; // Ставим плоскость позади линзы
+  scene.add(bgPlane);
+
+  // ==========================================
+  // 3. ЛАМПА ДЛЯ ЦВЕТНОГО БЛИКА (AR/BlueBlock)
+  // ==========================================
+  const rectLight = new THREE.RectAreaLight(0x00ffaa, 8.0, 10, 0.5);
+  rectLight.position.set(0, 3, 3);
   rectLight.lookAt(0, 0, 0);
   scene.add(rectLight);
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-  scene.add(ambientLight);
-
   // ==========================================
-  // МАТЕРИАЛ И СОСТОЯНИЯ
+  // МАТЕРИАЛ: ФИЗИКА СТЕКЛА
   // ==========================================
-  // Базовый материал с обновленной оптикой и преломлением 1.6
   const glassMaterial = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
-    transmission: 1.0,      
+    transmission: 1.0,      // Включаем прозрачность стекла
     opacity: 1.0, 
     transparent: true,
-    roughness: 0.0, 
-    metalness: 0.02,
-    ior: 1.6,                 // Высокий индекс преломления
-    thickness: 1.5,           // Толщина для искажения фона
+    roughness: 0.0,         // Идеально гладкое
+    metalness: 0.05,        // Чуть усиливает края
+    ior: 1.55,              // Индекс преломления (заставляет фон искажаться)
+    thickness: 2.0,         // Оптическая толщина (усиливает эффект лупы)
     attenuationColor: new THREE.Color(0xffffff),
     attenuationDistance: 5.0,
     clearcoat: 1.0, 
     clearcoatRoughness: 0.0,
-    envMapIntensity: 1.5 
+    envMapIntensity: 1.5    // Впитывает отражения студии
   });
 
   const opticalStates = {
@@ -219,7 +227,7 @@
       attenuationColor: new THREE.Color(0xffffff),
       baseColor: new THREE.Color(0xffffff),
       envIntensity: 1.5,
-      lightColor: new THREE.Color(0x00ffaa), // Зеленый блик
+      lightColor: new THREE.Color(0x00ffaa),
       lightIntensity: 8.0
     },
     blue_blocker: {
@@ -227,7 +235,7 @@
       attenuationColor: new THREE.Color(0xffffff),
       baseColor: new THREE.Color(0xffffff),
       envIntensity: 1.5,
-      lightColor: new THREE.Color(0x3366ff), // Синий блик
+      lightColor: new THREE.Color(0x3366ff),
       lightIntensity: 8.0
     },
     photo_gray: {
@@ -235,7 +243,7 @@
       attenuationColor: new THREE.Color(0x222222),
       baseColor: new THREE.Color(0x444444),
       envIntensity: 2.5,
-      lightColor: new THREE.Color(0xffffff), // Белый блик на темном
+      lightColor: new THREE.Color(0xffffff),
       lightIntensity: 4.0
     },
     photo_brown: {
@@ -342,7 +350,7 @@
     spinGroup.rotation.x += (targetRotationX - spinGroup.rotation.x) * 0.05;
     floatGroup.position.y = Math.sin(elapsedTime * 1.5) * 0.06;
 
-    // Плавное переключение состояний (Lerp)
+    // Плавное переключение материалов
     glassMaterial.transmission = THREE.MathUtils.lerp(glassMaterial.transmission, currentState.transmission, 0.03);
     glassMaterial.envMapIntensity = THREE.MathUtils.lerp(glassMaterial.envMapIntensity, currentState.envIntensity, 0.03);
     glassMaterial.attenuationColor.lerp(currentState.attenuationColor, 0.03);
