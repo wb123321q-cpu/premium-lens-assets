@@ -2,21 +2,21 @@
   <canvas id="lens-pro-canvas"></canvas>
   
   <div class="hud-overlay top-left">
-    <div class="hud-title">МИР ОПТИКИ PRO</div>
+    <div class="hud-title">MIR OPTIKI PRO</div>
     <div class="hud-subtitle">Студия конфигурации</div>
   </div>
 
   <div class="hud-overlay bottom-left">
     <div class="coating-controls">
-      <button class="tech-btn active" data-state="clear_ar">AR Зеленый</button>
-      <button class="tech-btn" data-state="blue_blocker">Blue Blocker</button>
-      <button class="tech-btn" data-state="photo_gray">Фотохром Серый 75%</button>
-      <button class="tech-btn" data-state="photo_brown">Фотохром Коричневый 75%</button>
+      <button class="tech-btn active" data-state="clear_ar">AR Зеленый (Антиблик)</button>
+      <button class="tech-btn" data-state="blue_blocker">Blue Protect (Синий)</button>
+      <button class="tech-btn" data-state="photo_gray">Фотохром (Глубокий Серый)</button>
+      <button class="tech-btn" data-state="photo_brown">Фотохром (Шоколадный)</button>
     </div>
   </div>
 
   <div class="hud-overlay bottom-right">
-    <button class="cta-btn">Записаться на подбор оптики</button>
+    <button class="cta-btn">Записаться на подбор</button>
   </div>
   
   <div class="interaction-hint" id="drag-hint">Коснитесь и вращайте</div>
@@ -122,8 +122,8 @@
 <script type="importmap">
   {
     "imports": {
-      "three": "https://unpkg.com/three@0.160.1/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.1/examples/jsm/"
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
     }
   }
 </script>
@@ -144,7 +144,6 @@
   const buttons = document.querySelectorAll('.tech-btn');
 
   const scene = new THREE.Scene();
-  // Устанавливаем базовый светлый фон
   scene.background = new THREE.Color(0xf5f5f7); 
 
   const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
@@ -157,24 +156,22 @@
   renderer.toneMappingExposure = 1.0; 
 
   // ==========================================
-  // 1. ИДЕАЛЬНЫЕ ОТРАЖЕНИЯ (СТУДИЯ)
+  // СТУДИЯ ОТРАЖЕНИЙ (PMREM)
   // ==========================================
-  // Используем встроенную реалистичную студию для микро-отражений
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
   pmremGenerator.compileEquirectangularShader();
   scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 
   // ==========================================
-  // 2. ФОН ДЛЯ ПРЕЛОМЛЕНИЯ (ТОЛЩИНА СТЕКЛА)
+  // ФОН ДЛЯ ЭФФЕКТА СТЕКЛА (РЕФРАКЦИИ)
   // ==========================================
-  // Рисуем премиальный фон (сетка + водяной знак), который линза будет искажать
   const canvasBg = document.createElement('canvas');
   canvasBg.width = 2048; canvasBg.height = 2048;
   const ctx = canvasBg.getContext('2d');
   ctx.fillStyle = '#f5f5f7';
   ctx.fillRect(0, 0, 2048, 2048);
   
-  ctx.strokeStyle = '#ebebeb'; // Тонкая светлая сетка
+  ctx.strokeStyle = '#ebebeb';
   ctx.lineWidth = 4;
   for(let i=0; i<=2048; i+=128) {
     ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 2048); ctx.stroke();
@@ -191,68 +188,87 @@
     new THREE.PlaneGeometry(30, 30),
     new THREE.MeshBasicMaterial({ map: bgTexture, depthWrite: false })
   );
-  bgPlane.position.z = -5; // Ставим плоскость позади линзы
+  bgPlane.position.z = -5;
   scene.add(bgPlane);
 
   // ==========================================
-  // 3. ЛАМПА ДЛЯ ЦВЕТНОГО БЛИКА (AR/BlueBlock)
+  // МАССИВ ИЗ 15 ЛАМП (LED STRIP EFFECT)
   // ==========================================
-  const rectLight = new THREE.RectAreaLight(0x00ffaa, 8.0, 10, 0.5);
-  rectLight.position.set(0, 3, 3);
-  rectLight.lookAt(0, 0, 0);
-  scene.add(rectLight);
+  const ledArray = [];
+  const ledGroup = new THREE.Group();
+  
+  // Создаем 15 маленьких источников в линию
+  for (let i = 0; i < 15; i++) {
+    // Узкая, вытянутая лампа (как диод)
+    const light = new THREE.RectAreaLight(0x22ff88, 12.0, 0.12, 1.5);
+    // Расставляем их в ряд с небольшим шагом
+    light.position.set(-3.5 + i * 0.5, 4, 3);
+    light.lookAt(0, 0, 0);
+    ledGroup.add(light);
+    ledArray.push(light);
+  }
+  scene.add(ledGroup);
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+  scene.add(ambientLight);
 
   // ==========================================
-  // МАТЕРИАЛ: ФИЗИКА СТЕКЛА
+  // МАТЕРИАЛ С ИРИЗАЦИЕЙ (ФИЗИКА ПОКРЫТИЯ)
   // ==========================================
   const glassMaterial = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
-    transmission: 1.0,      // Включаем прозрачность стекла
+    transmission: 1.0,      
     opacity: 1.0, 
     transparent: true,
-    roughness: 0.0,         // Идеально гладкое
-    metalness: 0.05,        // Чуть усиливает края
-    ior: 1.55,              // Индекс преломления (заставляет фон искажаться)
-    thickness: 2.0,         // Оптическая толщина (усиливает эффект лупы)
+    roughness: 0.0, 
+    metalness: 0.02,
+    ior: 1.55,              
+    thickness: 2.0,         
     attenuationColor: new THREE.Color(0xffffff),
     attenuationDistance: 5.0,
     clearcoat: 1.0, 
     clearcoatRoughness: 0.0,
-    envMapIntensity: 1.5    // Впитывает отражения студии
+    envMapIntensity: 1.0,
+    // Включаем симулятор напыления, чтобы белые блики приобретали оттенок
+    iridescence: 1.0,
+    iridescenceIOR: 1.4
   });
 
+  // ==========================================
+  // КОНФИГУРАЦИЯ ОПТИЧЕСКИХ СВОЙСТВ
+  // ==========================================
   const opticalStates = {
     clear_ar: {
       transmission: 1.0,
       attenuationColor: new THREE.Color(0xffffff),
       baseColor: new THREE.Color(0xffffff),
-      envIntensity: 1.5,
-      lightColor: new THREE.Color(0x00ffaa),
-      lightIntensity: 8.0
+      lightColor: new THREE.Color(0x22ff88), // Насыщенный зеленый
+      lightIntensity: 12.0,
+      iridescence: 1.0 // Включаем эффект пленки
     },
     blue_blocker: {
       transmission: 1.0,
       attenuationColor: new THREE.Color(0xffffff),
       baseColor: new THREE.Color(0xffffff),
-      envIntensity: 1.5,
-      lightColor: new THREE.Color(0x3366ff),
-      lightIntensity: 8.0
+      lightColor: new THREE.Color(0x2266ff), // Синий (BlueProtect)
+      lightIntensity: 12.0,
+      iridescence: 1.0
     },
     photo_gray: {
-      transmission: 0.15,
-      attenuationColor: new THREE.Color(0x222222),
-      baseColor: new THREE.Color(0x444444),
-      envIntensity: 2.5,
-      lightColor: new THREE.Color(0xffffff),
-      lightIntensity: 4.0
+      transmission: 0.02, // Сильно затемняем (почти непрозрачно)
+      attenuationColor: new THREE.Color(0x111111),
+      baseColor: new THREE.Color(0x161616), // Глубокий серый/черный
+      lightColor: new THREE.Color(0xffffff), // На темном стекле блик белый
+      lightIntensity: 6.0,
+      iridescence: 0.0 // Выключаем напыление на темном
     },
     photo_brown: {
-      transmission: 0.15,
-      attenuationColor: new THREE.Color(0x3d2314),
-      baseColor: new THREE.Color(0x5c3a21),
-      envIntensity: 2.5,
+      transmission: 0.02, // Сильно затемняем
+      attenuationColor: new THREE.Color(0x2a1405), // Шоколадный объем
+      baseColor: new THREE.Color(0x3a1f0d), // Насыщенный коричневый (как на фото 5)
       lightColor: new THREE.Color(0xffffff),
-      lightIntensity: 4.0
+      lightIntensity: 6.0,
+      iridescence: 0.0
     }
   };
 
@@ -350,14 +366,17 @@
     spinGroup.rotation.x += (targetRotationX - spinGroup.rotation.x) * 0.05;
     floatGroup.position.y = Math.sin(elapsedTime * 1.5) * 0.06;
 
-    // Плавное переключение материалов
-    glassMaterial.transmission = THREE.MathUtils.lerp(glassMaterial.transmission, currentState.transmission, 0.03);
-    glassMaterial.envMapIntensity = THREE.MathUtils.lerp(glassMaterial.envMapIntensity, currentState.envIntensity, 0.03);
-    glassMaterial.attenuationColor.lerp(currentState.attenuationColor, 0.03);
-    glassMaterial.color.lerp(currentState.baseColor, 0.03);
+    // Плавное переключение материалов стекла
+    glassMaterial.transmission = THREE.MathUtils.lerp(glassMaterial.transmission, currentState.transmission, 0.05);
+    glassMaterial.iridescence = THREE.MathUtils.lerp(glassMaterial.iridescence, currentState.iridescence, 0.05);
+    glassMaterial.attenuationColor.lerp(currentState.attenuationColor, 0.05);
+    glassMaterial.color.lerp(currentState.baseColor, 0.05);
     
-    rectLight.color.lerp(currentState.lightColor, 0.05);
-    rectLight.intensity = THREE.MathUtils.lerp(rectLight.intensity, currentState.lightIntensity, 0.05);
+    // Анимируем все 15 ламп одновременно
+    ledArray.forEach(light => {
+      light.color.lerp(currentState.lightColor, 0.05);
+      light.intensity = THREE.MathUtils.lerp(light.intensity, currentState.lightIntensity, 0.05);
+    });
 
     renderer.render(scene, camera);
     requestAnimationFrame(render);
